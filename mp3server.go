@@ -64,18 +64,11 @@ func serveFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func serveDirectory(w http.ResponseWriter, r *http.Request, path string) {
-	defer func() {
-		if err, ok := recover().(error); ok {
-			fmt.Println("Error serving: " + path + " message: " + err.Error())
-			http.Error(w, "Error loading "+path, http.StatusInternalServerError)
-		}
-	}()
-
 	file, err := os.Open(path)
 
-	defer file.Close()
-
 	failIfError(err)
+
+	defer file.Close()
 
 	directoryFiles, err := file.Readdir(-1)
 
@@ -97,4 +90,13 @@ func serveDirectory(w http.ResponseWriter, r *http.Request, path string) {
 	if jsonEncoder.Encode(&fileList) != nil {
 		panic(err)
 	}
+
+	defer func() {
+		err, ok := recover().(error)
+		if ok {
+			fmt.Println("Error serving: " + path + " message: " + err.Error())
+			http.Error(w, "Error loading "+path, http.StatusInternalServerError)
+		}
+	}()
 }
+
